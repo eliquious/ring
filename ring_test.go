@@ -167,25 +167,6 @@ func Benchmark_1000_NodeHashRing(b *testing.B) {
 	baselineBenchmark(5, 250)(b)
 }
 
-func BenchmarkMapGet(b *testing.B) {
-	m := make(map[string]string)
-	m["name"] = "1234567890"
-	var name string
-	name += ""
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		name = m["name"]
-	}
-}
-
-func BenchmarkMapSet(b *testing.B) {
-	m := make(map[string]string)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		m["name"] = "1234567890"
-	}
-}
-
 func TestHashing(t *testing.T) {
 	r := NewHashRing()
 
