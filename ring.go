@@ -1,6 +1,6 @@
-// A Fast Consistent Hashing module
-// The Mandalore Ring package is based on a paper by John Lamping and Eric Veach called "A Fast, Minimal Memory, Consistent Hash Algorithm"
-// It can be found here: http://arxiv.org/pdf/1406.2294v1.pdf
+// Package ring is a Fast Consistent Hashing module
+// It is based on a paper by John Lamping and Eric Veach called "A Fast, Minimal Memory, Consistent Hash Algorithm"
+// The paper can be found here: http://arxiv.org/pdf/1406.2294v1.pdf
 package ring
 
 // package imports
@@ -18,22 +18,50 @@ var hasher = fnv.New64a()
 //      Interfaces
 // --------------------
 
-// Node interface
+// Node is an interface representing a physical host. Each node has a host, a capacity and a hash.
 type Node interface {
+
+	// Returns the host for the node.
 	GetHost() string
+
+	// Returns the capacity of the node. This number determines how many virtual nodes belong to the host.
 	GetSize() int
+
+	// Returns the hash of the node. This 64-bit number symbolizes where a node falls on the ring.
 	GetHash() uint64
+
+	// Changes where a node falls on the ring.
 	SetHash(h uint64)
 }
 
+// Ring is the main interface for this package. It comprises of methods used to hash keys into buckets which
+// will be evenly divided among all virtual nodes in the ring.
+// All values are hashed using the FNV algorithm into an unsigned 64-bit integer. The Jump Hash
+// algorithm then determines which bucket a hash falls into.
 type Ring interface {
+
+	// Adds a host to the ring. The first arg
 	Add(host string, size int)
+
+	// Determines the bucket of an unsigned 64-bit integer
 	FindBucket(key uint64) int
+
+	// Hashes the bytes given with FNV and then returns the result of FindBucket(key uint64)
 	FindBucketWithBytes(data []byte) int
+
+	// Hashes the string given with FNV and then returns the result of FindBucket(key uint64)
 	FindBucketWithString(data string) int
+
+	// Finds a bucket for a given key based on the size of the ring given.
 	FindBucketGivenSize(key uint64, size int) int
+
+	// Hashes the data using FNV
 	Hash(data []byte) uint64
+
+	// Returns the size of the ring. Virtual nodes are included.
 	Size() int
+
+	// Returns a node for the given bucket number
 	GetNode(index int) Node
 }
 
@@ -68,7 +96,7 @@ func (n node) SetHash(h uint64) {
 	n.hash = h
 }
 
-// Creates a new Node
+// NewNode creates a new Node with a hostname and a capacity.
 func NewNode(host string, size int) Node {
 	return node{host: host, size: size}
 }
@@ -176,7 +204,7 @@ func (h *hashRing) GetNode(index int) Node {
 	return h.nodes[index]
 }
 
-// creates an empty ring
+// NewHashRing creates a new hash ring.
 func NewHashRing() Ring {
 	return &hashRing{nodes: make([]node, 0, 16)}
 }
