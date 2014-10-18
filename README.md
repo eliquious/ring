@@ -1,5 +1,4 @@
-# ring
---
+
     import "github.com/eliquious/ring"
 
 Package ring is a very fast consistent hashing module. It is based on a [paper](http://arxiv.org/pdf/1406.2294v1.pdf) by John
