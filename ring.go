@@ -29,9 +29,6 @@ type Node interface {
 
 	// Returns the hash of the node. This 64-bit number symbolizes where a node falls on the ring.
 	GetHash() uint64
-
-	// Changes where a node falls on the ring.
-	SetHash(h uint64)
 }
 
 // Ring is the main interface for this package. It comprises of methods used to hash keys into buckets which
@@ -89,11 +86,6 @@ func (n node) GetSize() int {
 // Getter for a Node's hash
 func (n node) GetHash() uint64 {
 	return n.hash
-}
-
-// Sets a Node's hash
-func (n node) SetHash(h uint64) {
-	n.hash = h
 }
 
 // NewNode creates a new Node with a hostname and a capacity.

@@ -3,11 +3,7 @@ package ring
 import (
 	"fmt"
 	"github.com/GaryBoone/GoStats/stats"
-	// jump "github.com/dgryski/go-jump"
 	"github.com/stretchr/testify/assert"
-	// "hash/fnv"
-	// "math"
-	// "sort"
 	"testing"
 )
 
@@ -194,11 +190,6 @@ func TestHashCorrectness(t *testing.T) {
 	r.Add("localhost:7003", 20)
 	r.Add("localhost:7004", 20)
 
-	// maxHash := (math.Pow(2, 64))
-	// for i := 0; i < r.Size(); i++ {
-	// 	fmt.Println(r.GetNode(i), float64(r.GetNode(i).GetHash())/maxHash*100)
-	// }
-
 	// The bucket should not change until the ring size
 	// decreases enough to where the bucket no longer exists.
 	// Then the hashed value should be remapped to another bucket.
@@ -213,7 +204,41 @@ func TestHashCorrectness(t *testing.T) {
 		}
 
 		// Make sure the bucket is remapped after the ring size no
-		// long includes the bucket
+		// longer includes the bucket
 		assert.NotEqual(t, bucket, r.FindBucketGivenSize(i, bucket))
 	}
+}
+
+func TestFindBucketWithBytesAndString(t *testing.T) {
+
+	// create new ring
+	r := NewHashRing()
+
+	// add 100 virtual nodes
+	r.Add("localhost:7000", 20)
+	r.Add("localhost:7001", 20)
+	r.Add("localhost:7002", 20)
+	r.Add("localhost:7003", 20)
+	r.Add("localhost:7004", 20)
+
+	// create byte array
+	data := []byte("golang")
+
+	// Hash input data
+	hasher.Write(data)
+
+	// calculate hash
+	hash := hasher.Sum64()
+
+	// Find bucket
+	expected := r.FindBucket(hash)
+
+	// reset hasher
+	hasher.Reset()
+
+	// ensure the bucket is correct for byte arrays
+	assert.Equal(t, expected, r.FindBucketWithBytes(data))
+
+	// ensure the bucket is correct for strings
+	assert.Equal(t, expected, r.FindBucketWithString("golang"))
 }

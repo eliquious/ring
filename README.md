@@ -21,9 +21,6 @@ type Node interface {
 
 	// Returns the hash of the node. This 64-bit number symbolizes where a node falls on the ring.
 	GetHash() uint64
-
-	// Changes where a node falls on the ring.
-	SetHash(h uint64)
 }
 ```
 
