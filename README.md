@@ -1,4 +1,5 @@
-# Ring
+# Ring [![Coverage Status](https://coveralls.io/repos/eliquious/ring/badge.png)](https://coveralls.io/r/eliquious/ring)
+
 
     import "github.com/eliquious/ring"
 
