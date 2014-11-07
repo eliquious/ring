@@ -5,8 +5,13 @@ go:
   - 1.2
   - 1.3
   - tip
-
+before_install:
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - go get code.google.com/p/go.tools/cmd/cover
 install:
   - go get github.com/stretchr/testify/assert
   - go get github.com/dgryski/go-jump
   - go get github.com/GaryBoone/GoStats/stats
+script:
+    - $HOME/gopath/bin/goveralls -repotoken TOUsFcCeoudzayuVIS8VnE0XzHfFYU38U
