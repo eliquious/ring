@@ -8,3 +8,5 @@ go:
 
 install:
   - go get github.com/stretchr/testify/assert
+  - go get github.com/dgryski/go-jump
+  - go get github.com/GaryBoone/GoStats/stats
