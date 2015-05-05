@@ -1,7 +1,7 @@
 # Ring [![Coverage Status](https://coveralls.io/repos/eliquious/ring/badge.png)](https://coveralls.io/r/eliquious/ring) [![Build Status](https://travis-ci.org/eliquious/ring.svg?branch=master)](https://travis-ci.org/eliquious/ring)
 
 
-    import "github.com/eliquious/ring"
+    import "github.com/swiftkick-io/ring"
 
 Package ring is a very fast consistent hashing module. It is based on a [paper](http://arxiv.org/pdf/1406.2294v1.pdf) by John
 Lamping and Eric Veach called "A Fast, Minimal Memory, Consistent Hash Algorithm".
