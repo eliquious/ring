@@ -6,13 +6,12 @@ package ring
 // package imports
 import (
 	"fmt"
-	jump "github.com/dgryski/go-jump"
 	"hash/fnv"
 	"sort"
-)
+	"sync"
 
-// FNV hash impl
-var hasher = fnv.New64a()
+	jump "github.com/dgryski/go-jump"
+)
 
 // --------------------
 //      Interfaces
@@ -40,26 +39,11 @@ type Ring interface {
 	// Adds a host to the ring. The first arg
 	Add(host string, size int)
 
-	// Determines the bucket of an unsigned 64-bit integer
-	FindBucket(key uint64) int
-
-	// Hashes the bytes given with FNV and then returns the result of FindBucket(key uint64)
-	FindBucketWithBytes(data []byte) int
-
-	// Hashes the string given with FNV and then returns the result of FindBucket(key uint64)
-	FindBucketWithString(data string) int
-
-	// Finds a bucket for a given key based on the size of the ring given.
-	FindBucketGivenSize(key uint64, size int) int
-
-	// Hashes the data using FNV
-	Hash(data []byte) uint64
-
 	// Returns the size of the ring. Virtual nodes are included.
 	Size() int
 
 	// Returns a node for the given bucket number
-	GetNode(index int) Node
+	GetNode(data []byte) Node
 }
 
 // --------------------
@@ -100,6 +84,7 @@ func NewNode(host string, size int) Node {
 type nodeList []node
 
 type hashRing struct {
+	sync.RWMutex
 	nodes nodeList
 }
 
@@ -126,7 +111,10 @@ func (h nodeList) sort() {
 
 // adds a host (+virtual hosts to the ring)
 func (h *hashRing) Add(host string, size int) {
-	hlen := h.Size()
+	h.Lock()
+	defer h.Unlock()
+	var hasher = fnv.New64a()
+	hlen := len(h.nodes)
 	cap := hlen + size
 
 	// resize node list
@@ -137,7 +125,7 @@ func (h *hashRing) Add(host string, size int) {
 	// insert new nodes at the end
 	for i := hlen; i < cap; i++ {
 		// hash: 0:localhost:7000:0
-		// adding the index at the start and end seemed to give better distribution
+		// adding the index at the start and end seemed to give better distribution...
 		hasher.Write([]byte(fmt.Sprint(i, ":", host, ":", i)))
 
 		// hash value
@@ -157,46 +145,42 @@ func (h *hashRing) Add(host string, size int) {
 	h.nodes.sort()
 }
 
-// calculates a Jump hash for the key provided
-func (h *hashRing) FindBucketGivenSize(key uint64, size int) int {
-	return int(jump.Hash(key, size))
-}
-
-// calculates a Jump hash for the key provided
-func (h *hashRing) FindBucket(key uint64) int {
-	return h.FindBucketGivenSize(key, h.Size())
-}
-
-// Hashes the bytes given onto a node on the ring
-func (h *hashRing) FindBucketWithBytes(data []byte) int {
-	hasher.Write(data)
-	defer hasher.Reset()
-	return h.FindBucket(hasher.Sum64())
-}
-
-// Hashes the string given onto a node on the ring
-func (h *hashRing) FindBucketWithString(data string) int {
-	return h.FindBucketWithBytes([]byte(data))
-}
-
-// Hashes a []byte
-func (h *hashRing) Hash(data []byte) uint64 {
-	hasher.Write(data)
-	defer hasher.Reset()
-	return hasher.Sum64()
-}
-
 // returns the size of the ring
 func (h *hashRing) Size() int {
+	h.RLock()
+	defer h.RUnlock()
 	return len(h.nodes)
 }
 
 // returns a particular index
-func (h *hashRing) GetNode(index int) Node {
-	return h.nodes[index]
+func (h *hashRing) GetNode(data []byte) Node {
+	h.RLock()
+	defer h.RUnlock()
+	return h.nodes[h.calculateJumpHash(hash(data))]
+}
+
+// returns a particular index
+func (h *hashRing) calculateJumpHash(hash uint64) int {
+	h.RLock()
+	defer h.RUnlock()
+	return int(jump.Hash(hash, len(h.nodes)))
 }
 
 // NewHashRing creates a new hash ring.
 func NewHashRing() Ring {
 	return &hashRing{nodes: make([]node, 0, 16)}
+}
+
+// CalculateBucketGivenSize calculates a Jump hash for the key provided
+func CalculateBucketGivenSize(data []byte, size int) int {
+	var hasher = fnv.New64a()
+	hasher.Write(data)
+	return int(jump.Hash(hasher.Sum64(), size))
+}
+
+// FNV-64a hash
+func hash(data []byte) uint64 {
+	var hasher = fnv.New64a()
+	hasher.Write(data)
+	return hasher.Sum64()
 }

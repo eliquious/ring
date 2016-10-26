@@ -1,10 +1,12 @@
 # Ring [![Coverage Status](https://coveralls.io/repos/eliquious/ring/badge.png)](https://coveralls.io/r/eliquious/ring)
 
 
-    import "github.com/swiftkick-io/ring"
+    go get -u github.com/eliquious/ring
 
-Package ring is a very fast consistent hashing module. It is based on a [paper](http://arxiv.org/pdf/1406.2294v1.pdf) by John
+Package `ring` is a very fast consistent hashing module. It is based on a [paper](http://arxiv.org/pdf/1406.2294v1.pdf) by John
 Lamping and Eric Veach called "A Fast, Minimal Memory, Consistent Hash Algorithm".
+
+The hash ring is thread safe so it can be used by multiple goroutines.
 
 ## Usage
 
@@ -39,29 +41,14 @@ NewNode creates a new Node with a hostname and a capacity.
 ```go
 type Ring interface {
 
-	// Adds a host to the ring. The first arg
+	// Add adds a host to the ring.
 	Add(host string, size int)
 
-	// Determines the bucket of an unsigned 64-bit integer
-	FindBucket(key uint64) int
-
-	// Hashes the bytes given with FNV and then returns the result of FindBucket(key uint64)
-	FindBucketWithBytes(data []byte) int
-
-	// Hashes the string given with FNV and then returns the result of FindBucket(key uint64)
-	FindBucketWithString(data string) int
-
-	// Finds a bucket for a given key based on the size of the ring given.
-	FindBucketGivenSize(key uint64, size int) int
-
-	// Hashes the data using FNV
-	Hash(data []byte) uint64
-
-	// Returns the size of the ring. Virtual nodes are included.
+	// Size Returns the size of the ring. Virtual nodes are included.
 	Size() int
 
-	// Returns a node for the given bucket number
-	GetNode(index int) Node
+	// GetNode returns a node for the given input
+	GetNode(data []byte) Node
 }
 ```
 
@@ -82,8 +69,9 @@ NewHashRing creates a new hash ring.
 The number implies the total virtual nodes in the hash ring.
 
 ```
-Benchmark_5_NodeHashRing	100000000	        23.7 ns/op
-Benchmark_25_NodeHashRing	50000000	        45.0 ns/op
-Benchmark_100_NodeHashRing	50000000	        58.4 ns/op
-Benchmark_1000_NodeHashRing	20000000	        81.4 ns/op
+BenchmarkGetNode_5_Nodes    	10000000	       124 ns/op
+BenchmarkGetNode_25_Nodes   	10000000	       139 ns/op
+BenchmarkGetNode_100_Nodes  	10000000	       151 ns/op
+BenchmarkGetNode_1000_Nodes 	10000000	       170 ns/op
+BenchmarkGetNode_10000_Nodes	10000000	       192 ns/op
 ```

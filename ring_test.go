@@ -2,9 +2,11 @@ package ring
 
 import (
 	"fmt"
-	"github.com/GaryBoone/GoStats/stats"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/GaryBoone/GoStats/stats"
+	jump "github.com/dgryski/go-jump"
+	"github.com/stretchr/testify/assert"
 )
 
 // tests the GetHost function on the Node interface
@@ -46,7 +48,7 @@ func TestNodesHaveBeenSorted(t *testing.T) {
 	host := "localhost:7000"
 
 	// create new ring
-	r := NewHashRing()
+	r := NewHashRing().(*hashRing)
 
 	// add 5 virtual nodes
 	r.Add(host, 5)
@@ -54,16 +56,14 @@ func TestNodesHaveBeenSorted(t *testing.T) {
 	// test sort order of hash values
 	last := uint64(0)
 	for i := 0; i < r.Size(); i++ {
-		// if i != 0 {
-		assert.True(t, r.GetNode(i).GetHash() > last)
-		// }
-		last = r.GetNode(i).GetHash()
+		assert.True(t, r.nodes[i].GetHash() > last)
+		last = r.nodes[i].GetHash()
 	}
 }
 
 // ensures all virtual nodes are distributed evenly within e=0.0001
 func TestVirtualNodeDistribution(t *testing.T) {
-	r := NewHashRing()
+	r := NewHashRing().(*hashRing)
 
 	// add 5 virtual nodes
 	r.Add("localhost:7000", 20)
@@ -76,11 +76,11 @@ func TestVirtualNodeDistribution(t *testing.T) {
 	counts := make([]int, r.Size())
 	var COUNT int = 10e6
 	for i := 0; i < COUNT; i++ {
-		pos := r.FindBucket(uint64(i))
+		pos := r.calculateJumpHash(uint64(i))
 		counts[pos]++
 	}
 
-	var avg float64 = float64(COUNT) / float64(r.Size())
+	var avg = float64(COUNT) / float64(r.Size())
 	for _, node := range counts {
 		d.Update(float64(node))
 	}
@@ -92,7 +92,7 @@ func TestVirtualNodeDistribution(t *testing.T) {
 
 // ensures all physical nodes are distributed evenly within e=0.0001
 func TestNodeDistribution(t *testing.T) {
-	r := NewHashRing()
+	r := NewHashRing().(*hashRing)
 
 	// add 5 virtual nodes
 	r.Add("localhost:7000", 20)
@@ -110,9 +110,10 @@ func TestNodeDistribution(t *testing.T) {
 	nodes["localhost:7004"] = 0
 
 	var COUNT int = 10e6
+	size := r.Size()
 	for i := 0; i < COUNT; i++ {
-		pos := r.FindBucket(uint64(i))
-		nodes[r.GetNode(pos).GetHost()]++
+		pos := int(jump.Hash(uint64(i), size))
+		nodes[r.nodes[pos].GetHost()]++
 	}
 
 	var avg = float64(COUNT) / float64(5)
@@ -129,59 +130,58 @@ func TestNodeDistribution(t *testing.T) {
 
 // closure function for benchmarking multiple clusters
 func baselineBenchmark(hosts, vnodes int) func(b *testing.B) {
-	ring := NewHashRing()
+	ring := NewHashRing().(*hashRing)
 	var startPort = 7000
 	for i := startPort; i < hosts+startPort; i++ {
 		ring.Add(fmt.Sprint("localhost:", i), vnodes)
 	}
 
 	return func(b *testing.B) {
+		b.ResetTimer()
+
 		// use the ring hash a number
 		for n := 0; n < b.N; n++ {
-			ring.FindBucket(uint64(n))
+			ring.calculateJumpHash(uint64(n))
 		}
 	}
 }
 
 // 5 Nodes
-func Benchmark_5_NodeHashRing(b *testing.B) {
+func BenchmarkGetNode_5_Nodes(b *testing.B) {
 	baselineBenchmark(5, 1)(b)
 }
 
 // 5 Nodes with 5 Virtual Nodes each
-func Benchmark_25_NodeHashRing(b *testing.B) {
+func BenchmarkGetNode_25_Nodes(b *testing.B) {
 	baselineBenchmark(5, 5)(b)
 }
 
-// 5 Nodes with 20 Virtual Nodes each
-func Benchmark_100_NodeHashRing(b *testing.B) {
-	baselineBenchmark(5, 20)(b)
+// 20 Nodes with 5 Virtual Nodes each
+func BenchmarkGetNode_100_Nodes(b *testing.B) {
+	baselineBenchmark(20, 5)(b)
 }
 
-// 5 Nodes with 250 Virtual Nodes each
-func Benchmark_1000_NodeHashRing(b *testing.B) {
-	baselineBenchmark(5, 250)(b)
+// 250 Nodes with 5 Virtual Nodes each
+func BenchmarkGetNode_1000_Nodes(b *testing.B) {
+	baselineBenchmark(250, 5)(b)
+}
+
+// 2500 Nodes with 5 Virtual Nodes each
+func BenchmarkGetNode_10000_Nodes(b *testing.B) {
+	baselineBenchmark(2500, 5)(b)
 }
 
 func TestHashing(t *testing.T) {
-	r := NewHashRing()
-
-	// // add 5 virtual nodes
-	r.Add("localhost:7000", 20)
-	r.Add("localhost:7001", 20)
-	r.Add("localhost:7002", 20)
-	r.Add("localhost:7003", 20)
-	r.Add("localhost:7004", 20)
-
 	var count = 50
-	last_node := count + 1
+	lastNode := count + 1
+	data := ([]byte("input"))
 	for size := count; size > 1; size-- {
-		assert.True(t, r.FindBucketGivenSize(r.Hash([]byte("context")), size) <= last_node)
+		assert.True(t, CalculateBucketGivenSize(data, size) <= lastNode)
 	}
 }
 
 func TestHashCorrectness(t *testing.T) {
-	r := NewHashRing()
+	r := NewHashRing().(*hashRing)
 
 	// // add 5 virtual nodes
 	r.Add("localhost:7000", 20)
@@ -195,24 +195,24 @@ func TestHashCorrectness(t *testing.T) {
 	// Then the hashed value should be remapped to another bucket.
 	var bucket int
 	for i := uint64(0); i < 10; i++ {
-		bucket = r.FindBucket(i)
+		bucket = r.calculateJumpHash(i)
 
 		// Bucket should not change wilth the ring is
 		// larger than the bucket index
 		for j := (r.Size()); j > bucket; j-- {
-			assert.Equal(t, bucket, r.FindBucketGivenSize(i, j))
+			assert.Equal(t, int(bucket), int(jump.Hash(i, j)))
 		}
 
 		// Make sure the bucket is remapped after the ring size no
 		// longer includes the bucket
-		assert.NotEqual(t, bucket, r.FindBucketGivenSize(i, bucket))
+		assert.NotEqual(t, bucket, jump.Hash(i, bucket))
 	}
 }
 
 func TestFindBucketWithBytesAndString(t *testing.T) {
 
 	// create new ring
-	r := NewHashRing()
+	r := NewHashRing().(*hashRing)
 
 	// add 100 virtual nodes
 	r.Add("localhost:7000", 20)
@@ -224,21 +224,9 @@ func TestFindBucketWithBytesAndString(t *testing.T) {
 	// create byte array
 	data := []byte("golang")
 
-	// Hash input data
-	hasher.Write(data)
-
-	// calculate hash
-	hash := hasher.Sum64()
-
 	// Find bucket
-	expected := r.FindBucket(hash)
-
-	// reset hasher
-	hasher.Reset()
+	expected := r.nodes[r.calculateJumpHash(hash(data))]
 
 	// ensure the bucket is correct for byte arrays
-	assert.Equal(t, expected, r.FindBucketWithBytes(data))
-
-	// ensure the bucket is correct for strings
-	assert.Equal(t, expected, r.FindBucketWithString("golang"))
+	assert.Equal(t, expected, r.GetNode(data))
 }
