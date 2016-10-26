@@ -1,4 +1,4 @@
-# Ring [![Coverage Status](https://coveralls.io/repos/eliquious/ring/badge.png)](https://coveralls.io/r/eliquious/ring) [![Build Status](https://travis-ci.org/eliquious/ring.svg?branch=master)](https://travis-ci.org/eliquious/ring)
+# Ring [![Coverage Status](https://coveralls.io/repos/eliquious/ring/badge.png)](https://coveralls.io/r/eliquious/ring)
 
 
     import "github.com/swiftkick-io/ring"
