@@ -36,13 +36,16 @@ type Node interface {
 // algorithm then determines which bucket a hash falls into.
 type Ring interface {
 
-	// Adds a host to the ring. The first arg
+	// Add adds a host to the ring.
 	Add(host string, size int)
 
-	// Returns the size of the ring. Virtual nodes are included.
+	// Remove removes a host from the ring.
+	Remove(host string)
+
+	// Size returns the size of the ring. Virtual nodes are included.
 	Size() int
 
-	// Returns a node for the given bucket number
+	// GetNode returns a node for the given input.
 	GetNode(data []byte) Node
 }
 
@@ -140,6 +143,24 @@ func (h *hashRing) Add(host string, size int) {
 		// reset hash
 		hasher.Reset()
 	}
+
+	// sort nodes around ring based on hash
+	h.nodes.sort()
+}
+
+// Remove removes a host from the ring.
+func (h *hashRing) Remove(host string) {
+	h.Lock()
+	defer h.Unlock()
+
+	// remove all virtual nodes of the given host
+	var nodes nodeList
+	for _, n := range h.nodes {
+		if n.GetHost() != host {
+			nodes = append(nodes, n)
+		}
+	}
+	h.nodes = nodes
 
 	// sort nodes around ring based on hash
 	h.nodes.sort()

@@ -1,5 +1,4 @@
-# Ring [![Coverage Status](https://coveralls.io/repos/eliquious/ring/badge.png)](https://coveralls.io/r/eliquious/ring)
-
+# Ring 
 
     go get -u github.com/eliquious/ring
 
